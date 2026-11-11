@@ -336,3 +336,4 @@ export const ProjectsView: React.FC = () => {
     </div>
   );
 };
+

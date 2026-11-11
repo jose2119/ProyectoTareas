@@ -417,3 +417,4 @@ export const NewTaskView: React.FC<NewTaskViewProps> = ({ onClose }) => {
     </div>
   );
 };
+

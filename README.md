@@ -78,3 +78,4 @@ ProyectoTareas/
     ├── main.tsx          # Render inicial de React
     └── index.css         # Estilos globales y Tailwind CSS
 ```
+

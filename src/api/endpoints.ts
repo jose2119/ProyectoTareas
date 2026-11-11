@@ -26,3 +26,4 @@ export const ENDPOINTS = {
     PROFILE: '/auth/profile',
   }
 } as const;
+

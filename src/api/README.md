@@ -125,3 +125,4 @@ Retorna las estadísticas del dashboard de rendimiento.
   ]
 }
 ```
+

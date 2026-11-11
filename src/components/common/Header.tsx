@@ -92,3 +92,4 @@ export const Header: React.FC<HeaderProps> = ({ subtitle = 'Hoy', showBack, onBa
     </header>
   );
 };
+

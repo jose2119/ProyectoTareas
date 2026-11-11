@@ -324,3 +324,4 @@ export const PerformanceView: React.FC = () => {
     </div>
   );
 };
+

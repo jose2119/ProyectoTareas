@@ -51,3 +51,4 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
     </div>
   );
 };
+

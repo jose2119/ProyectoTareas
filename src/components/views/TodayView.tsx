@@ -387,3 +387,4 @@ export const TodayView: React.FC = () => {
     </div>
   );
 };
+
