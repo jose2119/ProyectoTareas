@@ -18,6 +18,12 @@ interface AppContextType {
   setActiveTab: (tab: NavTab) => void;
   isNewTaskModalOpen: boolean;
   setIsNewTaskModalOpen: (open: boolean) => void;
+  editingTask: Task | null;
+  setEditingTask: (task: Task | null) => void;
+  editingProject: Project | null;
+  setEditingProject: (project: Project | null) => void;
+  isTagModalOpen: boolean;
+  setIsTagModalOpen: (open: boolean) => void;
   tasks: Task[];
   projects: Project[];
   metrics: PerformanceMetrics;
@@ -31,10 +37,15 @@ interface AppContextType {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   addTask: (task: Omit<Task, 'id'>) => Promise<Task>;
+  updateTask: (taskId: string, task: Partial<Task>) => Promise<Task>;
   toggleTaskCompletion: (taskId: string) => Promise<void>;
   toggleSubtaskCompletion: (taskId: string, subtaskId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   createProject: (project: Omit<Project, 'id'>) => Promise<Project>;
+  updateProject: (projectId: string, project: Partial<Project>) => Promise<Project>;
+  deleteProject: (projectId: string) => Promise<void>;
+  createTag: (nombre: string, color?: string) => Promise<Tag>;
+  deleteTag: (id: number | string) => Promise<void>;
   toastMessage: string | null;
   showToast: (msg: string) => void;
   refreshData: () => Promise<void>;
@@ -45,9 +56,14 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(authService.getCurrentUser());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(authService.isAuthenticated());
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  // MOSTRAR EL MODAL DE INGRESAR O REGISTRAR AL CARGAR SI NO ESTÁ AUTENTICADO
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(!authService.isAuthenticated());
   const [activeTab, setActiveTab] = useState<NavTab>('hoy');
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState<boolean>(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isTagModalOpen, setIsTagModalOpen] = useState<boolean>(false);
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [metrics, setMetrics] = useState<PerformanceMetrics>(initialMetrics);
@@ -68,7 +84,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const loadAllData = async () => {
     try {
       setLoading(true);
-      // Cargar usuario si hay token
       if (authService.isAuthenticated()) {
         const currentUser = await authService.getMe();
         if (currentUser) setUser(currentUser);
@@ -120,6 +135,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     authService.logout();
     setUser(null);
     setIsAuthenticated(false);
+    setIsAuthModalOpen(true);
     showToast('Sesión cerrada');
   };
 
@@ -130,8 +146,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return created;
   };
 
+  const updateTask = async (taskId: string, taskData: Partial<Task>): Promise<Task> => {
+    const updated = await taskService.updateTask(taskId, taskData);
+    setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, ...updated } : t)));
+    showToast('Tarea actualizada');
+    return updated;
+  };
+
   const toggleTaskCompletion = async (taskId: string) => {
-    // Optimistic update
     setTasks(prev =>
       prev.map(t => {
         if (t.id === taskId) {
@@ -150,7 +172,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     try {
       await taskService.toggleTaskCompletion(taskId);
-      // Recargar racha y progreso
       const newStreak = await taskService.getUserStreak();
       setStreak(newStreak);
     } catch (err) {
@@ -191,6 +212,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return created;
   };
 
+  const updateProject = async (projectId: string, projectData: Partial<Project>): Promise<Project> => {
+    const updated = await projectService.updateProject(projectId, projectData);
+    setProjects(prev => prev.map(p => (p.id === projectId ? { ...p, ...updated } : p)));
+    showToast('Proyecto actualizado');
+    return updated;
+  };
+
+  const deleteProject = async (projectId: string): Promise<void> => {
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    await projectService.deleteProject(projectId);
+    showToast('Proyecto eliminado');
+  };
+
+  const createTag = async (nombre: string, color?: string): Promise<Tag> => {
+    const created = await catalogService.createTag(nombre, color);
+    setTags(prev => [...prev, created]);
+    showToast(`Etiqueta #${nombre} creada`);
+    return created;
+  };
+
+  const deleteTag = async (id: number | string): Promise<void> => {
+    setTags(prev => prev.filter(t => String(t.etiqueta_id) !== String(id)));
+    await catalogService.deleteTag(id);
+    showToast('Etiqueta eliminada');
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -202,6 +249,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setActiveTab,
         isNewTaskModalOpen,
         setIsNewTaskModalOpen,
+        editingTask,
+        setEditingTask,
+        editingProject,
+        setEditingProject,
+        isTagModalOpen,
+        setIsTagModalOpen,
         tasks,
         projects,
         metrics,
@@ -215,10 +268,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         register,
         logout,
         addTask,
+        updateTask,
         toggleTaskCompletion,
         toggleSubtaskCompletion,
         deleteTask,
         createProject,
+        updateProject,
+        deleteProject,
+        createTag,
+        deleteTag,
         toastMessage,
         showToast,
         refreshData: loadAllData,

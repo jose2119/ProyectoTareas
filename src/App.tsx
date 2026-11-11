@@ -8,6 +8,7 @@ import { ProjectsView } from './components/views/ProjectsView';
 import { NewTaskView } from './components/views/NewTaskView';
 import { PerformanceView } from './components/views/PerformanceView';
 import { AuthModal } from './components/auth/AuthModal';
+import { TagsModal } from './components/modals/TagsModal';
 
 const MainLayout: React.FC = () => {
   const {
@@ -17,6 +18,8 @@ const MainLayout: React.FC = () => {
     toastMessage,
     isAuthModalOpen,
     setIsAuthModalOpen,
+    isTagModalOpen,
+    setIsTagModalOpen,
   } = useApp();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -58,6 +61,9 @@ const MainLayout: React.FC = () => {
 
       {/* Auth Modal (Login / Registro para backend en Render) */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+      {/* Tags & Categories CRUD Modal */}
+      <TagsModal isOpen={isTagModalOpen} onClose={() => setIsTagModalOpen(false)} />
     </div>
   );
 };

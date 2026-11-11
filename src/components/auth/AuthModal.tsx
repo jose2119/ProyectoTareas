@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { LogIn, UserPlus, Mail, Lock, User as UserIcon, Sparkles, AlertCircle, ArrowRight, X } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, User as UserIcon, AlertCircle, ArrowRight, X, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose?: () => void;
-  canDismiss?: boolean;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canDismiss = true }) => {
-  const { login, register, showToast } = useApp();
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+  const { login, register, showToast, isAuthenticated, setIsAuthModalOpen } = useApp();
   const [isLoginTab, setIsLoginTab] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -43,18 +42,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canDismis
       if (onClose) onClose();
     } catch (err: any) {
       console.error('Error de autenticación:', err);
-      const msg = err.response?.data?.error || 'Error al conectar con el servidor en Render. Inténtalo de nuevo.';
+      const msg = err.response?.data?.error || 'Error al conectar con Render. Si es el primer acceso, Render puede tardar ~30s en despertar.';
       setErrorMessage(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGuestMode = () => {
+    setIsAuthModalOpen(false);
+    showToast('Modo exploración activo. ¡Inicia sesión cuando quieras sincronizar!');
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl w-full max-w-md border border-slate-200/90 shadow-2xl overflow-hidden flex flex-col">
         {/* Modal Header */}
-        <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-br from-indigo-50/60 to-white">
+        <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-br from-indigo-50/70 to-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-300">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -63,11 +67,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canDismis
             </div>
             <div>
               <h3 className="text-lg font-black text-slate-900 leading-tight">TaskFlow</h3>
-              <p className="text-xs text-slate-500 font-medium">Conectado a tu Backend en Render</p>
+              <p className="text-xs text-indigo-600 font-semibold flex items-center gap-1.5 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Conectado a Render API</span>
+              </p>
             </div>
           </div>
 
-          {canDismiss && onClose && (
+          {isAuthenticated && (
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
@@ -202,17 +209,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canDismis
             )}
           </button>
 
+          {/* Opción de explorar en modo demo si aún no se tiene cuenta */}
+          {!isAuthenticated && (
+            <button
+              type="button"
+              onClick={handleGuestMode}
+              className="w-full py-2.5 px-4 rounded-xl border border-dashed border-slate-300 text-slate-500 hover:text-slate-800 hover:bg-slate-50 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Explorar aplicación como invitado</span>
+            </button>
+          )}
+
           {/* Quick Notice */}
-          <div className="pt-2 text-center">
+          <div className="pt-1 text-center">
             <span className="text-[11px] text-slate-400">
-              Backend API:{' '}
+              API Documentada en:{' '}
               <a
                 href="https://backend-tareas-fvnx.onrender.com/api-docs/"
                 target="_blank"
                 rel="noreferrer"
                 className="text-indigo-600 hover:underline font-semibold"
               >
-                Swagger Docs
+                Swagger UI
               </a>
             </span>
           </div>

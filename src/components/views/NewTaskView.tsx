@@ -8,24 +8,30 @@ interface NewTaskViewProps {
 }
 
 export const NewTaskView: React.FC<NewTaskViewProps> = ({ onClose }) => {
-  const { addTask, setIsNewTaskModalOpen, setActiveTab, categories: appCategories } = useApp();
+  const { addTask, updateTask, editingTask, setEditingTask, setIsNewTaskModalOpen, setActiveTab, categories: appCategories } = useApp();
 
-  const [title, setTitle] = useState('Preparar presentación para inversores');
+  const [title, setTitle] = useState(editingTask ? editingTask.title : 'Preparar presentación para inversores');
   const [description, setDescription] = useState(
-    'Enfocarse en el crecimiento MoM del último trimestre, métricas de retención de cohortes y la proyección del runway.'
+    editingTask
+      ? (editingTask.description || '')
+      : 'Enfocarse en el crecimiento MoM del último trimestre, métricas de retención de cohortes y la proyección del runway.'
   );
-  const [category, setCategory] = useState('Trabajo');
-  const [categoriaId, setCategoriaId] = useState<number>(1);
-  const [priority, setPriority] = useState<PriorityLevel>('Alta');
-  const [date, setDate] = useState('Hoy, 24 Oct');
-  const [time, setTime] = useState('03:30 PM');
-  const [reminderActive, setReminderActive] = useState(true);
+  const [category, setCategory] = useState(editingTask ? editingTask.category : 'Trabajo');
+  const [categoriaId, setCategoriaId] = useState<number>(editingTask?.categoria_id || 1);
+  const [priority, setPriority] = useState<PriorityLevel>(editingTask ? editingTask.priority : 'Alta');
+  const [date, setDate] = useState(editingTask ? editingTask.dueDate : 'Hoy, 24 Oct');
+  const [time, setTime] = useState(editingTask ? editingTask.dueTime : '03:30 PM');
+  const [reminderActive, setReminderActive] = useState(editingTask ? !!editingTask.reminderActive : true);
 
-  const [subtasks, setSubtasks] = useState<Subtask[]>([
-    { id: '1', title: 'Revisar datos de métricas clave', completed: true },
-    { id: '2', title: 'Diseñar diapositiva de roadmap', completed: true },
-    { id: '3', title: 'Exportar en PDF de alta resolución', completed: false }
-  ]);
+  const [subtasks, setSubtasks] = useState<Subtask[]>(
+    editingTask?.subtasks && editingTask.subtasks.length > 0
+      ? editingTask.subtasks
+      : [
+          { id: '1', title: 'Revisar datos de métricas clave', completed: true },
+          { id: '2', title: 'Diseñar diapositiva de roadmap', completed: true },
+          { id: '3', title: 'Exportar en PDF de alta resolución', completed: false }
+        ]
+  );
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
@@ -44,6 +50,7 @@ export const NewTaskView: React.FC<NewTaskViewProps> = ({ onClose }) => {
       ];
 
   const handleClose = () => {
+    setEditingTask(null);
     if (onClose) {
       onClose();
     } else {
@@ -82,22 +89,37 @@ export const NewTaskView: React.FC<NewTaskViewProps> = ({ onClose }) => {
   const handleSave = async () => {
     if (!title.trim()) return;
 
-    await addTask({
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      categoria_id: categoriaId,
-      priority,
-      dueDate: date,
-      dueTime: time,
-      reminderActive,
-      reminderText: reminderActive ? '15 min antes de la hora fijada' : undefined,
-      completed: false,
-      subtasks,
-      attachments: [
-        { name: 'Pitch_Deck_Draft_v2.key', size: '14.2 MB' }
-      ]
-    });
+    if (editingTask) {
+      await updateTask(editingTask.id, {
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        categoria_id: categoriaId,
+        priority,
+        dueDate: date,
+        dueTime: time,
+        reminderActive,
+        reminderText: reminderActive ? '15 min antes de la hora fijada' : undefined,
+        subtasks,
+      });
+    } else {
+      await addTask({
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        categoria_id: categoriaId,
+        priority,
+        dueDate: date,
+        dueTime: time,
+        reminderActive,
+        reminderText: reminderActive ? '15 min antes de la hora fijada' : undefined,
+        completed: false,
+        subtasks,
+        attachments: [
+          { name: 'Pitch_Deck_Draft_v2.key', size: '14.2 MB' }
+        ]
+      });
+    }
 
     handleClose();
   };

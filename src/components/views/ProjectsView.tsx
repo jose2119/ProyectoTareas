@@ -1,22 +1,30 @@
 import React, { useState } from 'react';
-import { SlidersHorizontal, Folder, Palette, Code, Leaf, CreditCard, BookOpen, MoreVertical, Plus, Check, Clock, User, Hash } from 'lucide-react';
+import { SlidersHorizontal, Folder, Palette, Code, Leaf, CreditCard, BookOpen, MoreVertical, Plus, Check, Clock, User, Hash, Trash2, Edit3 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Project } from '../../types';
 
 export const ProjectsView: React.FC = () => {
-  const { projects, createProject, showToast, searchQuery } = useApp();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState<'palette' | 'code' | 'leaf' | 'creditCard' | 'book'>('palette');
+  const {
+    projects,
+    createProject,
+    updateProject,
+    deleteProject,
+    tags: appTags,
+    setIsTagModalOpen,
+    showToast,
+    searchQuery,
+  } = useApp();
 
-  const tags = [
-    { name: '#urgente', dotColor: 'bg-rose-500', count: 4 },
-    { name: '#reunión', dotColor: 'bg-indigo-600', count: 7 },
-    { name: '#bug', dotColor: 'bg-rose-700', count: 2 },
-    { name: '#diseño', dotColor: 'bg-emerald-500', count: 9 },
-    { name: '#compras', dotColor: 'bg-indigo-400', count: 3 },
-  ];
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [activeMenuProjectId, setActiveMenuProjectId] = useState<string | null>(null);
+
+  // Form states
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [color, setColor] = useState('#4f46e5');
+  const [icon, setIcon] = useState<'palette' | 'code' | 'leaf' | 'creditCard' | 'book'>('palette');
 
   const renderIcon = (type: Project['icon']) => {
     switch (type) {
@@ -77,25 +85,60 @@ export const ProjectsView: React.FC = () => {
 
   const totalPending = projects.reduce((acc, p) => acc + p.activeTasksCount, 0);
 
-  const handleCreateProject = async (e: React.FormEvent) => {
+  const openCreateModal = () => {
+    setEditingProjectId(null);
+    setTitle('');
+    setDescription('');
+    setColor('#4f46e5');
+    setIcon('palette');
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (project: Project) => {
+    setEditingProjectId(project.id);
+    setTitle(project.title);
+    setDescription(project.description || '');
+    setColor(project.color || '#4f46e5');
+    setIcon(project.icon || 'palette');
+    setActiveMenuProjectId(null);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    if (!title.trim()) return;
 
-    await createProject({
-      title: newTitle.trim(),
-      badgeText: 'EN CURSO',
-      badgeVariant: 'progress',
-      activeTasksCount: 1,
-      progressPercentage: 10,
-      color: '#4f46e5',
-      icon: newCategory,
-      isIndividual: true,
-      footerNote: 'Proyecto recién creado',
-      footerStatus: 'single'
-    });
+    if (editingProjectId) {
+      await updateProject(editingProjectId, {
+        title: title.trim(),
+        description: description.trim(),
+        color,
+        icon,
+      });
+    } else {
+      await createProject({
+        title: title.trim(),
+        description: description.trim(),
+        badgeText: 'EN CURSO',
+        badgeVariant: 'progress',
+        activeTasksCount: 0,
+        progressPercentage: 0,
+        color,
+        icon,
+        isIndividual: true,
+        footerNote: 'Proyecto recién creado',
+        footerStatus: 'single',
+      });
+    }
 
-    setNewTitle('');
-    setIsNewProjectModalOpen(false);
+    setIsModalOpen(false);
+  };
+
+  const handleDelete = async (projectId: string) => {
+    if (window.confirm('¿Estás seguro de eliminar este proyecto de tu base de datos?')) {
+      await deleteProject(projectId);
+      setActiveMenuProjectId(null);
+    }
   };
 
   return (
@@ -114,13 +157,13 @@ export const ProjectsView: React.FC = () => {
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
-              Gestionando {totalPending} tareas activas en todas tus colecciones
+              Gestionando {totalPending} tareas activas en todas tus colecciones (CRUD en tiempo real)
             </p>
           </div>
         </div>
 
         <button
-          onClick={() => setIsNewProjectModalOpen(true)}
+          onClick={openCreateModal}
           className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white text-xs font-bold shadow-md shadow-indigo-300/50 transition-all flex items-center justify-center gap-2 cursor-pointer self-start md:self-auto"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
@@ -138,18 +181,18 @@ export const ProjectsView: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar proyectos por nombre o etiqueta..."
+            placeholder="Buscar proyectos por nombre..."
             className="w-full bg-transparent text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
           />
         </div>
 
         <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-3">
           <button
-            onClick={() => showToast('Filtrando proyectos activos')}
+            onClick={() => setIsTagModalOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Filtros</span>
+            <Hash className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Gestionar Etiquetas</span>
           </button>
         </div>
       </div>
@@ -161,7 +204,7 @@ export const ProjectsView: React.FC = () => {
             Tus Colecciones
           </h3>
           <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-md">
-            ORGANIZADO
+            Sincronizado con Render
           </span>
         </div>
 
@@ -169,7 +212,7 @@ export const ProjectsView: React.FC = () => {
           {filteredProjects.map((project) => (
             <div
               key={project.id}
-              className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col justify-between space-y-4 group"
+              className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col justify-between space-y-4 group relative"
             >
               {/* Card Header */}
               <div className="flex items-start justify-between gap-3">
@@ -203,7 +246,7 @@ export const ProjectsView: React.FC = () => {
                     className="h-full rounded-full transition-all duration-500"
                     style={{
                       width: `${project.progressPercentage}%`,
-                      backgroundColor: project.color
+                      backgroundColor: project.color,
                     }}
                   ></div>
                 </div>
@@ -240,19 +283,41 @@ export const ProjectsView: React.FC = () => {
                   </div>
                 )}
 
-                <button
-                  onClick={() => showToast(`Opciones de ${project.title}`)}
-                  className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-50 cursor-pointer"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
+                {/* 3-dots Menu for CRUD */}
+                <div className="relative">
+                  <button
+                    onClick={() => setActiveMenuProjectId(activeMenuProjectId === project.id ? null : project.id)}
+                    className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-50 cursor-pointer"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+
+                  {activeMenuProjectId === project.id && (
+                    <div className="absolute right-0 bottom-8 w-36 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-20 text-xs animate-in fade-in duration-150">
+                      <button
+                        onClick={() => openEditModal(project)}
+                        className="w-full text-left px-3.5 py-1.5 hover:bg-slate-50 text-slate-700 font-semibold flex items-center gap-2 cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(project.id)}
+                        className="w-full text-left px-3.5 py-1.5 hover:bg-rose-50 text-rose-600 font-semibold flex items-center gap-2 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Eliminar</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
 
-          {/* "+ Crear nuevo proyecto" tarjeta visual integrada en el grid */}
+          {/* "+ Crear nuevo proyecto" Card */}
           <div
-            onClick={() => setIsNewProjectModalOpen(true)}
+            onClick={openCreateModal}
             className="bg-slate-50/70 hover:bg-indigo-50/40 border-2 border-dashed border-indigo-200/80 rounded-3xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all min-h-[170px] group"
           >
             <div className="w-10 h-10 rounded-2xl bg-white group-hover:bg-indigo-600 group-hover:text-white border border-indigo-100 flex items-center justify-center text-indigo-600 transition-colors shadow-2xs">
@@ -263,14 +328,14 @@ export const ProjectsView: React.FC = () => {
                 Crear nuevo proyecto
               </span>
               <span className="text-xs text-slate-400">
-                Organiza tareas en un nuevo espacio
+                Registra un nuevo espacio en Render
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 4. Etiquetas Rápidas Bar */}
+      {/* 4. Etiquetas Rápidas Bar con enlace directo al CRUD */}
       <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -278,29 +343,26 @@ export const ProjectsView: React.FC = () => {
             <h4 className="text-sm font-extrabold text-slate-900">Etiquetas Rápidas</h4>
           </div>
           <button
-            onClick={() => showToast('Gestor de etiquetas')}
+            onClick={() => setIsTagModalOpen(true)}
             className="text-xs font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer"
           >
-            Gestionar
+            Gestionar CRUD
           </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {tags.map((tag) => (
+          {appTags.map((tag) => (
             <button
-              key={tag.name}
-              onClick={() => showToast(`Filtrando por ${tag.name}`)}
+              key={tag.etiqueta_id}
+              onClick={() => showToast(`Filtrando por #${tag.nombre}`)}
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200/80 text-xs font-semibold text-slate-700 hover:text-indigo-700 transition-colors cursor-pointer"
             >
-              <span className={`w-2 h-2 rounded-full ${tag.dotColor}`}></span>
-              <span>{tag.name}</span>
-              <span className="text-[10px] text-slate-400 bg-white px-1.5 py-0.5 rounded-md font-bold">
-                {tag.count}
-              </span>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tag.color || '#6366f1' }}></span>
+              <span>#{tag.nombre}</span>
             </button>
           ))}
           <button
-            onClick={() => showToast('Añadir etiqueta rápida')}
+            onClick={() => setIsTagModalOpen(true)}
             className="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-600 flex items-center justify-center transition-colors cursor-pointer"
             aria-label="Agregar etiqueta"
           >
@@ -309,22 +371,50 @@ export const ProjectsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal para Crear Proyecto */}
-      {isNewProjectModalOpen && (
+      {/* Modal CRUD Proyecto (Crear / Editar) */}
+      {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
-            <h4 className="text-lg font-extrabold text-slate-900">Crear Nuevo Proyecto</h4>
-            <form onSubmit={handleCreateProject} className="space-y-4">
+            <h4 className="text-lg font-extrabold text-slate-900">
+              {editingProjectId ? 'Editar Proyecto' : 'Crear Nuevo Proyecto'}
+            </h4>
+            <form onSubmit={handleSaveProject} className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1.5">Nombre del Proyecto</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Marketing Digital Q4"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Descripción</label>
+                <textarea
+                  rows={2}
+                  placeholder="Detalles del proyecto..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Color del Proyecto</label>
+                <div className="flex items-center gap-2">
+                  {['#4f46e5', '#3b82f6', '#10b981', '#be123c', '#8b5cf6', '#f59e0b'].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setColor(c)}
+                      className={`w-7 h-7 rounded-full cursor-pointer transition-transform ${color === c ? 'ring-2 ring-offset-2 ring-slate-800 scale-110' : ''}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -334,9 +424,9 @@ export const ProjectsView: React.FC = () => {
                     <button
                       type="button"
                       key={cat}
-                      onClick={() => setNewCategory(cat)}
+                      onClick={() => setIcon(cat)}
                       className={`p-3 rounded-xl border flex items-center justify-center cursor-pointer transition-all ${
-                        newCategory === cat
+                        icon === cat
                           ? 'border-indigo-600 bg-indigo-50 text-indigo-600 ring-2 ring-indigo-200'
                           : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                       }`}
@@ -350,7 +440,7 @@ export const ProjectsView: React.FC = () => {
               <div className="flex gap-2.5 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsNewProjectModalOpen(false)}
+                  onClick={() => setIsModalOpen(false)}
                   className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 cursor-pointer"
                 >
                   Cancelar
@@ -359,7 +449,7 @@ export const ProjectsView: React.FC = () => {
                   type="submit"
                   className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-md shadow-indigo-300 cursor-pointer"
                 >
-                  Guardar Proyecto
+                  {editingProjectId ? 'Guardar Cambios' : 'Crear Proyecto'}
                 </button>
               </div>
             </form>

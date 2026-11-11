@@ -112,4 +112,45 @@ export const projectService = {
       return fallback;
     }
   },
+
+  /**
+   * Actualiza un proyecto existente.
+   * PUT /api/proyectos/:id
+   */
+  async updateProject(projectId: string, projectData: Partial<Project>): Promise<Project> {
+    const payload = {
+      nombre: projectData.title,
+      descripcion: projectData.description,
+      color: projectData.color,
+      icono: projectData.icon,
+    };
+
+    try {
+      const response = await apiClient.put<any>(ENDPOINTS.PROYECTOS.BY_ID(projectId), payload);
+      const updated = mapBackendProyectoToProject(response.data);
+      const current = getLocalProjects();
+      saveLocalProjects(current.map(p => (p.id === projectId ? { ...p, ...updated } : p)));
+      return updated;
+    } catch {
+      const current = getLocalProjects();
+      const updated = current.map(p => (p.id === projectId ? { ...p, ...projectData } : p));
+      saveLocalProjects(updated);
+      return updated.find(p => p.id === projectId)!;
+    }
+  },
+
+  /**
+   * Elimina un proyecto por ID.
+   * DELETE /api/proyectos/:id
+   */
+  async deleteProject(projectId: string): Promise<void> {
+    const current = getLocalProjects();
+    saveLocalProjects(current.filter(p => p.id !== projectId));
+
+    try {
+      await apiClient.delete(ENDPOINTS.PROYECTOS.BY_ID(projectId));
+    } catch {
+      // Fallback
+    }
+  },
 };

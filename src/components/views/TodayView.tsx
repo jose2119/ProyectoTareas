@@ -4,7 +4,18 @@ import { useApp } from '../../context/AppContext';
 import { CircularProgress } from '../common/CircularProgress';
 
 export const TodayView: React.FC = () => {
-  const { tasks, toggleTaskCompletion, addTask, deleteTask, searchQuery, user, streak } = useApp();
+  const {
+    tasks,
+    toggleTaskCompletion,
+    addTask,
+    deleteTask,
+    setEditingTask,
+    setIsNewTaskModalOpen,
+    searchQuery,
+    user,
+    streak,
+    showToast,
+  } = useApp();
   const [selectedDay, setSelectedDay] = useState<number>(24);
   const [activeFilter, setActiveFilter] = useState<string>('Todas');
   const [isCompletedOpen, setIsCompletedOpen] = useState<boolean>(true);
@@ -231,24 +242,44 @@ export const TodayView: React.FC = () => {
                               </button>
 
                               {activeMenuTaskId === task.id && (
-                                <div className="absolute right-0 top-7 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-20 text-xs animate-in fade-in duration-150">
+                                <div className="absolute right-0 top-7 w-40 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-20 text-xs animate-in fade-in duration-150">
+                                  <button
+                                    onClick={() => {
+                                      setEditingTask(task);
+                                      setIsNewTaskModalOpen(true);
+                                      setActiveMenuTaskId(null);
+                                    }}
+                                    className="w-full text-left px-3.5 py-1.5 hover:bg-slate-50 text-indigo-700 font-semibold flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <span>✏️ Editar tarea</span>
+                                  </button>
                                   <button
                                     onClick={() => {
                                       toggleTaskCompletion(task.id);
                                       setActiveMenuTaskId(null);
                                     }}
-                                    className="w-full text-left px-3.5 py-1.5 hover:bg-slate-50 text-slate-700 font-medium"
+                                    className="w-full text-left px-3.5 py-1.5 hover:bg-slate-50 text-slate-700 font-medium flex items-center gap-2 cursor-pointer"
                                   >
-                                    Marcar completada
+                                    <span>✓ Completar</span>
                                   </button>
+                                  <button
+                                    onClick={() => {
+                                      showToast(`Sesión Pomodoro iniciada para "${task.title}"`);
+                                      setActiveMenuTaskId(null);
+                                    }}
+                                    className="w-full text-left px-3.5 py-1.5 hover:bg-slate-50 text-amber-700 font-medium flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <span>⏱️ Pomodoro 25m</span>
+                                  </button>
+                                  <div className="border-t border-slate-100 my-1"></div>
                                   <button
                                     onClick={() => {
                                       deleteTask(task.id);
                                       setActiveMenuTaskId(null);
                                     }}
-                                    className="w-full text-left px-3.5 py-1.5 hover:bg-rose-50 text-rose-600 font-medium"
+                                    className="w-full text-left px-3.5 py-1.5 hover:bg-rose-50 text-rose-600 font-medium flex items-center gap-2 cursor-pointer"
                                   >
-                                    Eliminar
+                                    <span>🗑️ Eliminar</span>
                                   </button>
                                 </div>
                               )}

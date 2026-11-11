@@ -22,6 +22,23 @@ export const catalogService = {
   },
 
   /**
+   * Crea una nueva categoría.
+   * POST /api/categorias
+   */
+  async createCategory(nombre: string, color = '#6366f1', icono = 'briefcase'): Promise<Category> {
+    const response = await apiClient.post<Category>(ENDPOINTS.CATEGORIAS.BASE, { nombre, color, icono });
+    return response.data;
+  },
+
+  /**
+   * Elimina una categoría por ID.
+   * DELETE /api/categorias/:id
+   */
+  async deleteCategory(id: number | string): Promise<void> {
+    await apiClient.delete(ENDPOINTS.CATEGORIAS.BY_ID(id));
+  },
+
+  /**
    * Obtiene la lista de etiquetas desde el backend.
    * GET /api/etiquetas
    */
@@ -39,4 +56,22 @@ export const catalogService = {
       ];
     }
   },
+
+  /**
+   * Crea una nueva etiqueta.
+   * POST /api/etiquetas
+   */
+  async createTag(nombre: string, color = '#6366f1'): Promise<Tag> {
+    const response = await apiClient.post<Tag>(ENDPOINTS.ETIQUETAS.BASE, { nombre, color });
+    return response.data;
+  },
+
+  /**
+   * Elimina una etiqueta por ID.
+   * DELETE /api/etiquetas/:id
+   */
+  async deleteTag(id: number | string): Promise<void> {
+    await apiClient.delete(ENDPOINTS.ETIQUETAS.BY_ID(id));
+  },
 };
+

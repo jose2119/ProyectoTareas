@@ -188,6 +188,115 @@ export const taskService = {
   },
 
   /**
+   * Actualiza una tarea existente.
+   * PUT /api/tareas/:id
+   */
+  async updateTask(taskId: string, taskData: Partial<Task>): Promise<Task> {
+    const payload = {
+      titulo: taskData.title,
+      descripcion: taskData.description,
+      prioridad: taskData.priority,
+      proyecto_id: taskData.projectId ? Number(taskData.projectId) : undefined,
+      categoria_id: taskData.categoria_id,
+      fecha_vencimiento: taskData.dueDate,
+      hora_vencimiento: taskData.dueTime,
+      es_reunion: taskData.isVideoCall,
+      recordatorio_activo: taskData.reminderActive,
+      recordatorio_minutos: taskData.reminderMinutes,
+    };
+
+    try {
+      const response = await apiClient.put<any>(ENDPOINTS.TAREAS.BY_ID(taskId), payload);
+      const updated = mapBackendTareaToTask(response.data);
+      const current = getLocalTasks();
+      saveLocalTasks(current.map(t => (t.id === taskId ? { ...t, ...updated } : t)));
+      return updated;
+    } catch {
+      const current = getLocalTasks();
+      const updated = current.map(t => (t.id === taskId ? { ...t, ...taskData } : t));
+      saveLocalTasks(updated);
+      return updated.find(t => t.id === taskId)!;
+    }
+  },
+
+  /**
+   * Cambia el estado directo de una tarea (Pendiente, EnProgreso, Completada, Cancelada).
+   * PATCH /api/tareas/:id/estado
+   */
+  async updateTaskStatus(taskId: string, estado: 'Pendiente' | 'EnProgreso' | 'Completada' | 'Cancelada'): Promise<Task> {
+    try {
+      const response = await apiClient.patch<any>(ENDPOINTS.TAREAS.ESTADO(taskId), { estado });
+      const updated = mapBackendTareaToTask(response.data);
+      const current = getLocalTasks();
+      saveLocalTasks(current.map(t => (t.id === taskId ? updated : t)));
+      return updated;
+    } catch {
+      const current = getLocalTasks();
+      const updated = current.map(t => (t.id === taskId ? { ...t, completed: estado === 'Completada' } : t));
+      saveLocalTasks(updated);
+      return updated.find(t => t.id === taskId)!;
+    }
+  },
+
+  /**
+   * Agrega una subtarea a una tarea existente.
+   * POST /api/subtareas
+   */
+  async addSubtask(taskId: string, title: string): Promise<Subtask> {
+    try {
+      const response = await apiClient.post<any>(ENDPOINTS.SUBTAREAS.BASE, {
+        tarea_id: Number(taskId),
+        titulo: title,
+      });
+      const newSt: Subtask = {
+        id: String(response.data.subtarea_id),
+        subtarea_id: response.data.subtarea_id,
+        title: response.data.titulo,
+        completed: !!response.data.completada,
+      };
+
+      const current = getLocalTasks();
+      const taskIndex = current.findIndex(t => t.id === taskId);
+      if (taskIndex !== -1) {
+        current[taskIndex].subtasks.push(newSt);
+        saveLocalTasks(current);
+      }
+      return newSt;
+    } catch {
+      const fallbackSt: Subtask = {
+        id: Date.now().toString(),
+        title,
+        completed: false,
+      };
+      const current = getLocalTasks();
+      const taskIndex = current.findIndex(t => t.id === taskId);
+      if (taskIndex !== -1) {
+        current[taskIndex].subtasks.push(fallbackSt);
+        saveLocalTasks(current);
+      }
+      return fallbackSt;
+    }
+  },
+
+  /**
+   * Elimina una subtarea.
+   * DELETE /api/subtareas/:id
+   */
+  async deleteSubtask(taskId: string, subtaskId: string): Promise<void> {
+    const current = getLocalTasks();
+    const taskIndex = current.findIndex(t => t.id === taskId);
+    if (taskIndex !== -1) {
+      current[taskIndex].subtasks = current[taskIndex].subtasks.filter(st => st.id !== subtaskId);
+      saveLocalTasks(current);
+    }
+    try {
+      await apiClient.delete(ENDPOINTS.SUBTAREAS.BY_ID(subtaskId));
+    } catch {
+      // Fallback
+    }
+  },
+
+  /**
    * Alterna el estado de una tarea (Completar / Revertir).
    * Llama a PATCH /api/tareas/:id/completar o PATCH /api/tareas/:id/estado
    */
