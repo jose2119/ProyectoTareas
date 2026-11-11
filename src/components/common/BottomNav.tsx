@@ -5,27 +5,9 @@ import { useApp, NavTab } from '../../context/AppContext';
 export const BottomNav: React.FC = () => {
   const { activeTab, setActiveTab, setIsNewTaskModalOpen } = useApp();
 
-  const navItems = [
-    {
-      id: 'hoy' as NavTab,
-      label: 'Hoy',
-      icon: Calendar,
-    },
-    {
-      id: 'proyectos' as NavTab,
-      label: 'Proyectos',
-      icon: FolderClosed,
-    },
-    {
-      id: 'rendimiento' as NavTab,
-      label: 'Rendimiento',
-      icon: TrendingUp,
-    },
-  ];
-
   return (
-    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 px-4 pb-4 pt-2">
-      <nav className="bg-white/95 backdrop-blur-lg border border-slate-200/80 rounded-3xl shadow-xl shadow-slate-300/40 px-4 py-2.5 flex items-center justify-between">
+    <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-3 pt-1 md:hidden">
+      <nav className="max-w-md mx-auto bg-white/95 backdrop-blur-lg border border-slate-200/90 rounded-2xl shadow-xl shadow-slate-300/40 px-4 py-2 flex items-center justify-between">
         {/* Item: Hoy */}
         <button
           onClick={() => setActiveTab('hoy')}
@@ -63,10 +45,10 @@ export const BottomNav: React.FC = () => {
         </button>
 
         {/* Center Floating Action Button: + */}
-        <div className="flex-1 flex justify-center -mt-6">
+        <div className="flex-1 flex justify-center -mt-5">
           <button
             onClick={() => setIsNewTaskModalOpen(true)}
-            className="w-12 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 transition-all cursor-pointer group"
+            className="w-11 h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 transition-all cursor-pointer group"
             aria-label="Nueva Tarea"
           >
             <Plus className="w-6 h-6 stroke-[2.5] group-hover:rotate-90 transition-transform duration-200" />
@@ -94,4 +76,3 @@ export const BottomNav: React.FC = () => {
     </div>
   );
 };
-
