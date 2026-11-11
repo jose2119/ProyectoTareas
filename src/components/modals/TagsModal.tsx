@@ -220,3 +220,4 @@ export const TagsModal: React.FC<TagsModalProps> = ({ isOpen, onClose }) => {
     </div>
   );
 };
+
