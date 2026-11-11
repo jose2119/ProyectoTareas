@@ -1,7 +1,22 @@
 export type PriorityLevel = 'Baja' | 'Media' | 'Alta';
 
+export interface User {
+  usuario_id: number | string;
+  rol_id?: number;
+  nombre_usuario: string;
+  nombre_completo: string;
+  correo: string;
+  zona_horaria?: string;
+  racha_actual?: number;
+  racha_maxima?: number;
+  avatar_url?: string;
+  estado?: string;
+  fecha_creacion?: string;
+}
+
 export interface Subtask {
   id: string;
+  subtarea_id?: number;
   title: string;
   completed: boolean;
 }
@@ -15,19 +30,26 @@ export interface Attachment {
 
 export interface Task {
   id: string;
+  tarea_id?: number;
   title: string;
   description?: string;
-  category: string; // e.g. "Trabajo", "Personal", "Sprint Q4", "UX Design", "Finanzas"
+  category: string;
+  categoria_id?: number;
   priority: PriorityLevel;
-  dueDate: string; // e.g. "Hoy, 24 Oct" or "2026-10-24"
-  dueTime: string; // e.g. "11:30 AM"
+  dueDate: string;
+  dueTime: string;
   isVideoCall?: boolean;
   completed: boolean;
-  completedAt?: string; // e.g. "09:15 AM"
+  completedAt?: string;
+  completedOnTime?: boolean;
   reminderActive?: boolean;
+  reminderMinutes?: number;
   reminderText?: string;
   subtasks: Subtask[];
+  subtasksCount?: number;
+  subtasksCompleted?: number;
   attachments?: Attachment[];
+  projectId?: number | string;
   createdAt?: string;
 }
 
@@ -39,12 +61,16 @@ export interface ProjectMember {
 
 export interface Project {
   id: string;
+  proyecto_id?: number;
   title: string;
+  description?: string;
   badgeText: string;
   badgeVariant: 'urgent' | 'progress' | 'personal' | 'finance' | 'learning' | 'default';
   activeTasksCount: number;
+  completedTasksCount?: number;
+  totalTasksCount?: number;
   progressPercentage: number;
-  color: string; // hex or tailwind class
+  color: string;
   icon: 'palette' | 'code' | 'leaf' | 'creditCard' | 'book';
   members?: ProjectMember[];
   isIndividual?: boolean;
@@ -52,8 +78,22 @@ export interface Project {
   footerStatus?: 'check' | 'time' | 'members' | 'single';
 }
 
+export interface Category {
+  categoria_id: number;
+  nombre: string;
+  color?: string;
+  icono?: string;
+}
+
+export interface Tag {
+  etiqueta_id: number;
+  nombre: string;
+  color?: string;
+}
+
 export interface DailyProductivity {
-  day: string; // "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"
+  day: string;
+  date?: string;
   count: number;
   isPeak?: boolean;
 }
@@ -68,7 +108,7 @@ export interface CategoryMetric {
 export interface Achievement {
   id: string;
   title: string;
-  badge: string; // "NUEVO", "SEMANA"
+  badge: string;
   badgeColor?: string;
   description: string;
   icon: 'rocket' | 'target' | 'award';
@@ -87,4 +127,3 @@ export interface PerformanceMetrics {
   categoryDistribution: CategoryMetric[];
   achievements: Achievement[];
 }
-

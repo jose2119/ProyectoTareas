@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { CircularProgress } from '../common/CircularProgress';
 
 export const TodayView: React.FC = () => {
-  const { tasks, toggleTaskCompletion, addTask, deleteTask, searchQuery } = useApp();
+  const { tasks, toggleTaskCompletion, addTask, deleteTask, searchQuery, user, streak } = useApp();
   const [selectedDay, setSelectedDay] = useState<number>(24);
   const [activeFilter, setActiveFilter] = useState<string>('Todas');
   const [isCompletedOpen, setIsCompletedOpen] = useState<boolean>(true);
@@ -74,11 +74,11 @@ export const TodayView: React.FC = () => {
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-              Hola, Camila <span className="inline-block hover:rotate-12 transition-transform cursor-default">👋</span>
+              Hola, {user ? user.nombre_completo.split(' ')[0] : 'Camila'} <span className="inline-block hover:rotate-12 transition-transform cursor-default">👋</span>
             </h2>
             <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 border border-amber-200/70 rounded-full text-amber-700 text-xs font-bold">
               <Flame className="w-4 h-4 fill-amber-500 text-amber-500" />
-              <span>4 días racha</span>
+              <span>{streak} días racha</span>
             </div>
           </div>
           <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1 flex items-center gap-1.5">

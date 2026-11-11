@@ -7,9 +7,17 @@ import { TodayView } from './components/views/TodayView';
 import { ProjectsView } from './components/views/ProjectsView';
 import { NewTaskView } from './components/views/NewTaskView';
 import { PerformanceView } from './components/views/PerformanceView';
+import { AuthModal } from './components/auth/AuthModal';
 
 const MainLayout: React.FC = () => {
-  const { activeTab, isNewTaskModalOpen, setIsNewTaskModalOpen, toastMessage } = useApp();
+  const {
+    activeTab,
+    isNewTaskModalOpen,
+    setIsNewTaskModalOpen,
+    toastMessage,
+    isAuthModalOpen,
+    setIsAuthModalOpen,
+  } = useApp();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -47,6 +55,9 @@ const MainLayout: React.FC = () => {
       {isNewTaskModalOpen && (
         <NewTaskView onClose={() => setIsNewTaskModalOpen(false)} />
       )}
+
+      {/* Auth Modal (Login / Registro para backend en Render) */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 };

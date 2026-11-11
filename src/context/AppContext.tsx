@@ -1,13 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Task, Project, PerformanceMetrics } from '../types';
+import { Task, Project, PerformanceMetrics, User, Category, Tag } from '../types';
 import { taskService } from '../services/taskService';
 import { projectService } from '../services/projectService';
 import { metricsService } from '../services/metricsService';
-import { initialMetrics } from '../data/mockData';
+import { authService, RegisterData } from '../services/authService';
+import { catalogService } from '../services/catalogService';
+import { initialMetrics, initialTasks, initialProjects } from '../data/mockData';
 
 export type NavTab = 'hoy' | 'proyectos' | 'rendimiento';
 
 interface AppContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isAuthModalOpen: boolean;
+  setIsAuthModalOpen: (open: boolean) => void;
   activeTab: NavTab;
   setActiveTab: (tab: NavTab) => void;
   isNewTaskModalOpen: boolean;
@@ -15,9 +21,15 @@ interface AppContextType {
   tasks: Task[];
   projects: Project[];
   metrics: PerformanceMetrics;
+  categories: Category[];
+  tags: Tag[];
+  streak: number;
   loading: boolean;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  login: (correo: string, pass: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
   addTask: (task: Omit<Task, 'id'>) => Promise<Task>;
   toggleTaskCompletion: (taskId: string) => Promise<void>;
   toggleSubtaskCompletion: (taskId: string, subtaskId: string) => Promise<void>;
@@ -31,11 +43,17 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(authService.getCurrentUser());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(authService.isAuthenticated());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<NavTab>('hoy');
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState<boolean>(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [metrics, setMetrics] = useState<PerformanceMetrics>(initialMetrics);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [streak, setStreak] = useState<number>(4);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -44,20 +62,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
-    }, 3000);
+    }, 3200);
   };
 
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [loadedTasks, loadedProjects, loadedMetrics] = await Promise.all([
+      // Cargar usuario si hay token
+      if (authService.isAuthenticated()) {
+        const currentUser = await authService.getMe();
+        if (currentUser) setUser(currentUser);
+      }
+
+      const [loadedTasks, loadedProjects, loadedMetrics, loadedCats, loadedTags, userStreak] = await Promise.all([
         taskService.getTasks(),
         projectService.getProjects(),
-        metricsService.getWeeklyMetrics()
+        metricsService.getWeeklyMetrics(),
+        catalogService.getCategories(),
+        catalogService.getTags(),
+        taskService.getUserStreak(),
       ]);
-      setTasks(loadedTasks);
-      setProjects(loadedProjects);
+
+      setTasks(loadedTasks.length > 0 ? loadedTasks : initialTasks);
+      setProjects(loadedProjects.length > 0 ? loadedProjects : initialProjects);
       setMetrics(loadedMetrics);
+      setCategories(loadedCats);
+      setTags(loadedTags);
+      setStreak(userStreak);
     } catch (err) {
       console.error('Error cargando datos de la app:', err);
     } finally {
@@ -67,7 +98,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     loadAllData();
-  }, []);
+  }, [isAuthenticated]);
+
+  const login = async (correo: string, pass: string) => {
+    const res = await authService.login({ correo, password: pass });
+    setUser(res.usuario);
+    setIsAuthenticated(true);
+    setIsAuthModalOpen(false);
+    await loadAllData();
+  };
+
+  const register = async (data: RegisterData) => {
+    const res = await authService.register(data);
+    setUser(res.usuario);
+    setIsAuthenticated(true);
+    setIsAuthModalOpen(false);
+    await loadAllData();
+  };
+
+  const logout = () => {
+    authService.logout();
+    setUser(null);
+    setIsAuthenticated(false);
+    showToast('Sesión cerrada');
+  };
 
   const addTask = async (taskData: Omit<Task, 'id'>): Promise<Task> => {
     const created = await taskService.createTask(taskData);
@@ -87,7 +141,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             completed: newCompleted,
             completedAt: newCompleted
               ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : undefined
+              : undefined,
           };
         }
         return t;
@@ -96,6 +150,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     try {
       await taskService.toggleTaskCompletion(taskId);
+      // Recargar racha y progreso
+      const newStreak = await taskService.getUserStreak();
+      setStreak(newStreak);
     } catch (err) {
       console.error('Error toggling task:', err);
     }
@@ -137,6 +194,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <AppContext.Provider
       value={{
+        user,
+        isAuthenticated,
+        isAuthModalOpen,
+        setIsAuthModalOpen,
         activeTab,
         setActiveTab,
         isNewTaskModalOpen,
@@ -144,9 +205,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         tasks,
         projects,
         metrics,
+        categories,
+        tags,
+        streak,
         loading,
         searchQuery,
         setSearchQuery,
+        login,
+        register,
+        logout,
         addTask,
         toggleTaskCompletion,
         toggleSubtaskCompletion,
@@ -154,7 +221,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         createProject,
         toastMessage,
         showToast,
-        refreshData: loadAllData
+        refreshData: loadAllData,
       }}
     >
       {children}
@@ -169,4 +236,3 @@ export const useApp = () => {
   }
   return context;
 };
-

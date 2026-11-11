@@ -8,13 +8,14 @@ interface NewTaskViewProps {
 }
 
 export const NewTaskView: React.FC<NewTaskViewProps> = ({ onClose }) => {
-  const { addTask, setIsNewTaskModalOpen, setActiveTab } = useApp();
+  const { addTask, setIsNewTaskModalOpen, setActiveTab, categories: appCategories } = useApp();
 
   const [title, setTitle] = useState('Preparar presentación para inversores');
   const [description, setDescription] = useState(
     'Enfocarse en el crecimiento MoM del último trimestre, métricas de retención de cohortes y la proyección del runway.'
   );
   const [category, setCategory] = useState('Trabajo');
+  const [categoriaId, setCategoriaId] = useState<number>(1);
   const [priority, setPriority] = useState<PriorityLevel>('Alta');
   const [date, setDate] = useState('Hoy, 24 Oct');
   const [time, setTime] = useState('03:30 PM');
@@ -28,12 +29,19 @@ export const NewTaskView: React.FC<NewTaskViewProps> = ({ onClose }) => {
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
-  const categories = [
-    { id: 'Trabajo', label: 'Trabajo', icon: Briefcase },
-    { id: 'UX Design', label: 'UX Design', icon: Palette },
-    { id: 'Finanzas', label: 'Finanzas', icon: CreditCard },
-    { id: 'Personal', label: 'Personal', icon: User },
-  ];
+  const displayCategories = appCategories.length > 0
+    ? appCategories.map(c => ({
+        id: c.nombre,
+        categoria_id: c.categoria_id,
+        label: c.nombre,
+        icon: c.nombre === 'Trabajo' ? Briefcase : c.nombre === 'UX Design' ? Palette : c.nombre === 'Finanzas' ? CreditCard : User,
+      }))
+    : [
+        { id: 'Trabajo', categoria_id: 1, label: 'Trabajo', icon: Briefcase },
+        { id: 'UX Design', categoria_id: 2, label: 'UX Design', icon: Palette },
+        { id: 'Finanzas', categoria_id: 3, label: 'Finanzas', icon: CreditCard },
+        { id: 'Personal', categoria_id: 4, label: 'Personal', icon: User },
+      ];
 
   const handleClose = () => {
     if (onClose) {
@@ -78,6 +86,7 @@ export const NewTaskView: React.FC<NewTaskViewProps> = ({ onClose }) => {
       title: title.trim(),
       description: description.trim(),
       category,
+      categoria_id: categoriaId,
       priority,
       dueDate: date,
       dueTime: time,
@@ -155,14 +164,17 @@ export const NewTaskView: React.FC<NewTaskViewProps> = ({ onClose }) => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {categories.map((cat) => {
+                  {displayCategories.map((cat) => {
                     const Icon = cat.icon;
                     const isSelected = category === cat.id;
                     return (
                       <button
                         key={cat.id}
                         type="button"
-                        onClick={() => setCategory(cat.id)}
+                        onClick={() => {
+                          setCategory(cat.id);
+                          setCategoriaId(cat.categoria_id);
+                        }}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-indigo-600 text-white shadow-xs'
